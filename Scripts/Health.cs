@@ -1,14 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using TMPro;
 
 public class Health : MonoBehaviour
 {
-    [SerializeField] private int health;
-    [SerializeField] private int lives;
+    private Unit unit;
     public List<int> morsels = new List<int>();
     [SerializeField] GameObject dmgNum;
+
 
     // Start is called before the first frame update
     void Start()
@@ -16,11 +15,11 @@ public class Health : MonoBehaviour
         // Initial health setup
         if(GetComponent<Unit>() != null)
         {
-            health = GetComponent<Unit>().health;
-            lives = GetComponent<Unit>().lives;
-            for (int i = 0; i < lives; i++)
+            unit = GetComponent<Unit>();
+        
+            for (int i = 0; i < unit.lives; i++)
             {
-                morsels.Add(health);
+                morsels.Add(unit.health);
             }
         }
 
@@ -30,7 +29,7 @@ public class Health : MonoBehaviour
     void Update()
     {
         if(morsels.Count > 0)
-            health = morsels[morsels.Count - 1];
+            unit.health = morsels[morsels.Count - 1];
 
     }
 
@@ -48,22 +47,28 @@ public class Health : MonoBehaviour
         // Display damage numbers
         if (showDamage)
         {
-            Debug.Log(gameObject.transform.position.x + " " + gameObject.transform.position.y);
-            GameObject dmg = Instantiate(dmgNum);//, new Vector3(gameObject.transform.position.x, gameObject.transform.position.y), Quaternion.identity);
+            GameObject dmg = Instantiate(dmgNum);
             dmg.transform.SetParent(GameObject.Find("Canvas").transform);
             dmg.GetComponent<RectTransform>().localScale = new Vector3(1, 1, 1);
+            dmg.GetComponent<RectTransform>().transform.position = gameObject.transform.position;
             dmg.GetComponent<DmgNum>().displaydmg(-damage);
         }
-        if (lives >= 0)
-        {
-            lives--;
-            health = morsels[morsels.Count - 1];
+
+        
+        // Remove morsel if HP too low!
+        if(morsels[morsels.Count - 1] <= 0) {
+            morsels.RemoveAt(morsels.Count - 1);
+
+            if (unit.lives > 0)
+            {
+                unit.lives--;
+            }
+            else
+            {
+                // Die
+                Destroy(gameObject);
+            }
         }
-        else
-        {
-            // Die
-            Destroy(gameObject);
-        }
-    }
+    } 
 
 }
