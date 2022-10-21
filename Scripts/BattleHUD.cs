@@ -5,11 +5,20 @@ using UnityEngine.UI;
 
 public class BattleHUD : MonoBehaviour
 {
-    public List<Slider> morsels = new List<Slider>();
+    private Health health; // Health script of the unit
+    public List<Slider> morselSlider = new List<Slider>(); // Data structure to hold all the sliders
+    public Slider morselPrefab; // Prefab of the sliders
+    public Canvas canvas; // Canvas to hold the sliders
 
-    public Slider morselPrefab;
-    public Canvas canvas;
-    
+    // Start is called before the first frame update
+    void Start() 
+    {
+        if(GetComponent<Health>() != null)
+        {
+            // If something has a BattleHUD, there should be a Health script attached to it!
+            health = GetComponent<Health>();
+        }
+    }
     public void SetHUD(Unit unit)
     {
         // Make HUD parent for GameObject
@@ -19,51 +28,66 @@ public class BattleHUD : MonoBehaviour
         // Set parent's position to unit GameObject
         parent.transform.position = unit.gameObject.transform.position;
 
-        // Make HUD a child of Canvas so it appears on screen!
+        // Make HUD a child of Canvas so it appears on screen! TODO: Give units a personal canvas!
         parent.transform.SetParent(canvas.transform, false);
         
         for (int i = 0; i < unit.lives; i++)
         {
             // Instantiate a new morsel
-            morsels.Add(Instantiate(morselPrefab, transform));
+            morselSlider.Add(Instantiate(morselPrefab, transform));
             // Set morsels to the HUD parent
-            morsels[i].transform.SetParent(parent.transform, false);
+            morselSlider[i].transform.SetParent(parent.transform, false);
             // Place morsels in the correct position
-            morsels[i].transform.position = parent.transform.position;
+            morselSlider[i].transform.position = parent.transform.position;
             // Balance morsel position
             SetMorselPositioning();
 
             // Set the morsel's value to the unit's health
-            morsels[i].maxValue = unit.health;
-            morsels[i].minValue = 0;
-            morsels[i].value = unit.health;
+            morselSlider[i].maxValue = unit.health;
+            morselSlider[i].minValue = 0;
+            morselSlider[i].value = unit.health;
         }
     }
 
     public void SetMorselPositioning()
-    {
-        Vector3 offset = new Vector3(0, 2, 0);
-        for (int i = 0; i < morsels.Count; i++)
+    {       
+        Vector3 offset = new Vector3(0, 2, 0); // Initial offset for the morsel's y-axis. TODO: Base this off of the Unit's height?
+        for (int i = 0; i < morselSlider.Count; i++)
         {
-            if(morsels.Count == 1) {
-                offset = new Vector3(0, 2, 0);
-            }
-            else {
-                offset += new Vector3(1, 0, 0);
-            }
-            morsels[i].transform.position = transform.root.position + offset - new Vector3((float)morsels.Count/2.0f + 0.5f, 0, 0);
+            offset += new Vector3(1, 0, 0); // Offset to stop lives from overlapping on the x-axis
+            morselSlider[i].transform.position = transform.position + offset - new Vector3((float)morselSlider.Count / 2.0f + 0.5f, 0, 0);
         }
-
     }
 
     public void Update()
     {
-        SetMorselPositioning();
-
         // Update morsel values
-        for (int i = 0; i < morsels.Count; i++)
+        for (int i = 0; i < health.GetMorsels().Count; i++)
         {
-            morsels[i].value = transform.root.GetComponent<Health>().morsels[i];
+            morselSlider[i].value = health.GetMorsels()[i];
+        }
+    
+        // If the BattleHUD morsel count is greater than the Health Component morsel count, a morsel was lost! 
+        // Update the HUD and remove it from the game scene.
+        if(morselSlider.Count > health.GetMorsels().Count)
+        {
+            Slider emptyMorsel = morselSlider[morselSlider.Count-1]; // Cache morsel to delete
+            morselSlider.RemoveAt(morselSlider.Count - 1); // Remove morsel from list
+            Destroy(emptyMorsel.gameObject); // Remove morsel from game scene
+        }
+
+        if(morselSlider.Count > 0)
+            SetMorselPositioning(); // Update morsel positions. TODO: When Canvas becomes a child of the unit, this will be unnecessary!
+        
+        
+    }
+
+    public void Cleanup() 
+    {
+        // Destroy all morsels when unit dies!
+        foreach (Slider morsel in morselSlider)
+        {
+            Destroy(morsel.gameObject);
         }
     }
 }
