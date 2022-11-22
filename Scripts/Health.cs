@@ -50,6 +50,12 @@ public class Health : MonoBehaviour
         }
 
         CheckMorselForDeath();
+
+        // Update the HUD to represent health
+        if (gameObject.TryGetComponent(out BattleHUD b))
+        {
+            b.SetHUD(unit);
+        }
     }
 
     private void CheckMorselForDeath()
@@ -74,5 +80,15 @@ public class Health : MonoBehaviour
 
     public List<int> GetMorsels() {
         return morsels;
+    }
+
+    public int getActualLives()
+    {
+        return actualLives;
+    }
+
+    public int getCurrentMorselHP()
+    {
+        return morsels[actualLives - 1];
     }
 }

@@ -8,48 +8,53 @@ public class BattleHUD : MonoBehaviour
     private Health health; // Health script of the unit
     public List<Slider> morselSlider = new List<Slider>(); // Data structure to hold all the sliders
     public Slider morselPrefab; // Prefab of the sliders
-    public Canvas canvas; // Canvas to hold the sliders
+    [SerializeField] GameObject personalCanvas;
 
     // Start is called before the first frame update
     void Start() 
     {
-        if(GetComponent<Health>() != null)
+        // Instantiate new canvas
+        Canvas canvas = new GameObject("Canvas").AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.WorldSpace;
+        canvas.transform.localScale = new Vector3(0.02f, 0.02f, 0);
+
+        // Set the canvas to be a child of the unit
+        personalCanvas = canvas.gameObject;
+        personalCanvas.transform.SetParent(transform);
+        personalCanvas.transform.position = transform.position + new Vector3(0, 2, 0);
+
+
+        if(gameObject.TryGetComponent(out Health h))
         {
             // If something has a BattleHUD, there should be a Health script attached to it!
-            health = GetComponent<Health>();
+            health = h;
         }
     }
     public void SetHUD(Unit unit)
     {
-        // Make HUD parent for GameObject
-        var parent = new GameObject();
-        parent.name = unit.name + " HUD";
-
-        // Set parent's position to unit GameObject
-        parent.transform.position = unit.gameObject.transform.position;
-
-        // Make HUD a child of Canvas so it appears on screen! TODO: Give units a personal canvas!
-        parent.transform.SetParent(canvas.transform, false);
-        
-        for (int i = 0; i < unit.lives; i++)
+        foreach (Slider m in morselSlider)
+        {
+            Destroy(m.gameObject);
+        }
+        morselSlider.Clear();
+        for (int i = 0; i < health.getActualLives(); i++)
         {
             // Instantiate a new morsel
             morselSlider.Add(Instantiate(morselPrefab, transform));
             // Set morsels to the HUD parent
-            morselSlider[i].transform.SetParent(parent.transform, false);
+            morselSlider[i].transform.SetParent(personalCanvas.transform, false);
             // Place morsels in the correct position
-            morselSlider[i].transform.position = parent.transform.position;
-            // Balance morsel position
-            SetMorselPositioning();
-
+            morselSlider[i].transform.position = personalCanvas.transform.position;
+            
             // Set the morsel's value to the unit's health
             morselSlider[i].maxValue = unit.health;
             morselSlider[i].minValue = 0;
-            morselSlider[i].value = unit.health;
+            morselSlider[i].value = health.GetMorsels()[i];
         }
+        SetMorselPositioning();
     }
 
-    public void SetMorselPositioning()
+    private void SetMorselPositioning()
     {       
         Vector3 offset = new Vector3(0, 2, 0); // Initial offset for the morsel's y-axis. TODO: Base this off of the Unit's height?
         for (int i = 0; i < morselSlider.Count; i++)
@@ -61,24 +66,6 @@ public class BattleHUD : MonoBehaviour
 
     public void Update()
     {
-        // Update morsel values
-        for (int i = 0; i < health.GetMorsels().Count; i++)
-        {
-            morselSlider[i].value = health.GetMorsels()[i];
-        }
-    
-        // If the BattleHUD morsel count is greater than the Health Component morsel count, a morsel was lost! 
-        // Update the HUD and remove it from the game scene.
-        if(morselSlider.Count > health.GetMorsels().Count)
-        {
-            Slider emptyMorsel = morselSlider[morselSlider.Count-1]; // Cache morsel to delete
-            morselSlider.RemoveAt(morselSlider.Count - 1); // Remove morsel from list
-            Destroy(emptyMorsel.gameObject); // Remove morsel from game scene
-        }
-
-        if(morselSlider.Count > 0)
-            SetMorselPositioning(); // Update morsel positions. TODO: When Canvas becomes a child of the unit, this will be unnecessary!
-        
         
     }
 
