@@ -51,6 +51,8 @@ public class BattleSystem : MonoBehaviour
     void PlayerTurn()
     {
         dialogueText.text = "Choose an action:";
+        // Create movement circle
+        playerUnit.GetComponent<MovementCircle>().SetupCircle(playerUnit.speed);    // Setup Movement Circle
     }
 
     public void OnAttackButton()
@@ -65,6 +67,7 @@ public class BattleSystem : MonoBehaviour
         // Damage the enemy
         enemyUnit.GetComponent<Health>().TakeDamage(35, false);
         state = BattleState.ENEMYTURN;
+        playerUnit.GetComponent<MovementCircle>().DestroyCircle();                  // Destroy Movement Circle
         yield return new WaitForSeconds(2f);
 
         StartCoroutine(EnemyTurn());
@@ -74,10 +77,13 @@ public class BattleSystem : MonoBehaviour
     {
         dialogueText.text = enemyUnit.nameOfUnit + " attacks!";
 
+        enemyUnit.GetComponent<MovementCircle>().SetupCircle(enemyUnit.speed);      // Setup Movement Circle
+
         //playerUnit.TakeDamage(enemyUnit.damage);
         playerUnit.GetComponent<Health>().TakeDamage(enemyUnit.damage, false);
-        yield return new WaitForSeconds(1f);
 
+        yield return new WaitForSeconds(1f);
+        enemyUnit.GetComponent<MovementCircle>().DestroyCircle();                 // Destroy Movement Circle
         if(playerUnit.lives <= 0) {
             state = BattleState.LOST;
             //EndBattle();
