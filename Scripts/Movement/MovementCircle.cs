@@ -40,10 +40,7 @@ public class MovementCircle : MonoBehaviour
         // the same but clamp the length to the specified radius.
         // Source: https://docs.unity3d.com/ScriptReference/Vector3.ClampMagnitude.html
         offset = newPos - centerPosition;
-        
-        // Move the object to the new position.
         transform.position = centerPosition + Vector2.ClampMagnitude(offset, movementRadius);
-
     }
 
     void OnDrawGizmos()
@@ -56,14 +53,14 @@ public class MovementCircle : MonoBehaviour
     public void SetupCircle(float speed)
     {
         // Create movement circle
-        movementCircle = Instantiate(movementCirclePrefab, transform.position, Quaternion.identity).transform;
+        movementCircle = Instantiate(movementCirclePrefab, transform.position + new Vector3(0, 0, 1.1f), Quaternion.identity).transform;
 
         // Get center of movementCircle
         centerPosition = transform.position;
 
         // Set movementCircle based on how fast a Unit is
         movementRadius = (speed * 2) / 2;   // Radius = Diameter / 2
-        movementCircle.localScale = new Vector3(movementRadius, movementRadius, 0) * 2;
+        movementCircle.localScale = new Vector3(movementRadius, movementRadius /*   / 2   */, 0) * 2;
         canMove = true;
     }
 
@@ -71,7 +68,7 @@ public class MovementCircle : MonoBehaviour
     {
         // Set movementCircle based on how fast a Unit is
         movementRadius = (speed * 2) / 2;   // Radius = Diameter / 2
-        movementCircle.localScale = new Vector3(movementRadius, movementRadius, 0) * 2;
+        movementCircle.localScale = new Vector3(movementRadius, movementRadius /*   / 2   */, 0) * 2;
     }
 
     public void DestroyCircle()

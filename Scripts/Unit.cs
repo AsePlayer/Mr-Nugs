@@ -14,6 +14,7 @@ public class Unit : MonoBehaviour
 
     public int damage;
 
+    public List<GameObject> moves = new List<GameObject>();
     /*
     public int accuracy;
     public int evasion;

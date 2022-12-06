@@ -6,10 +6,17 @@ public class FollowMouse : MonoBehaviour
 {
 
      public Transform target;
-     private Transform pivot;
+     public Transform pivot;
+
+     public GameObject owner;
+
+     public int damage;
  
      void Start() {
-        target = GameObject.Find("Player").transform;
+        
+        target = transform.parent;
+        owner = target.gameObject;
+
         pivot = new GameObject().transform;
         transform.parent = pivot;
      }

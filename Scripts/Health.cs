@@ -28,10 +28,10 @@ public class Health : MonoBehaviour
     }
 
     // if clicked take damage (test)
-    private void OnMouseDown()
-    {
-        TakeDamage(33, true);
-    }
+    // private void OnMouseDown()
+    // {
+    //     TakeDamage(33, true);
+    // }
 
     public void TakeDamage(int damage, bool showDamage)
     {

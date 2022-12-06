@@ -16,7 +16,12 @@ public class BattleSystem : MonoBehaviour
     Unit playerUnit;
     Unit enemyUnit;
 
+    public List<Unit> enemyUnits = new List<Unit>();
+
     public TMP_Text dialogueText;
+
+    private GameObject currentMove;
+    private int currentMoveIndex = 0;
 
     void Start()
     {
@@ -30,17 +35,37 @@ public class BattleSystem : MonoBehaviour
         //Instantiate(enemyPrefab, new Vector3(0, 0, 0), Quaternion.identity);
         state = BattleState.PLAYERTURN;
         
-        playerUnit = playerPrefab.GetComponent<Unit>();
-        enemyUnit = enemyPrefab.GetComponent<Unit>();
+        // playerUnit = playerPrefab.GetComponent<Unit>();
+        // enemyUnit = enemyPrefab.GetComponent<Unit>();
 
-        dialogueText.text = "A wild " + enemyUnit.nameOfUnit + " appeared!";
+        // dialogueText.text = "A wild " + enemyUnit.nameOfUnit + " appeared!";
+
+        // Find all objects with component battlehud
+        Unit[] units = FindObjectsOfType<Unit>();
+
+        foreach (Unit unit in units)
+        {
+            unit.GetComponent<BattleHUD>().SetHUD(unit);
+
+            // if tagged player
+            if (unit.tag == "Player")
+            {
+                playerUnit = unit;
+            }
+            else
+            {
+                enemyUnits.Add(unit);
+            }
+
+            currentMoveIndex = unit.moves.Count * 5000;
+        }
         
-        if(playerPrefab.GetComponent<BattleHUD>()) {
-            playerUnit.GetComponent<BattleHUD>().SetHUD(playerUnit);
-        }
-        if(enemyPrefab.GetComponent<BattleHUD>()) {
-            enemyUnit.GetComponent<BattleHUD>().SetHUD(enemyUnit);
-        }
+        // if(playerPrefab.GetComponent<BattleHUD>()) {
+        //     playerUnit.GetComponent<BattleHUD>().SetHUD(playerUnit);
+        // }
+        // if(enemyPrefab.GetComponent<BattleHUD>()) {
+        //     enemyUnit.GetComponent<BattleHUD>().SetHUD(enemyUnit);
+        // }
 
         yield return new WaitForSeconds(2f);
 
@@ -53,6 +78,19 @@ public class BattleSystem : MonoBehaviour
         dialogueText.text = "Choose an action:";
         // Create movement circle
         playerUnit.GetComponent<MovementCircle>().SetupCircle(playerUnit.speed);    // Setup Movement Circle
+
+        // Start with the first move
+        currentMove = Instantiate(playerUnit.moves[currentMoveIndex%playerUnit.moves.Count]);
+        currentMove.transform.parent = gameObject.transform;
+        currentMove.GetComponent<Move>().execute(playerUnit.gameObject);
+
+    }
+
+    public void NewMovementCircle()
+    {
+        // print("new circle yo");
+        playerUnit.GetComponent<MovementCircle>().DestroyCircle();
+        playerUnit.GetComponent<MovementCircle>().SetupCircle(playerUnit.speed);
     }
 
     public void OnAttackButton()
@@ -65,7 +103,10 @@ public class BattleSystem : MonoBehaviour
 
     IEnumerator PlayerAttack() {
         // Damage the enemy
-        enemyUnit.GetComponent<Health>().TakeDamage(35, false);
+        // enemyUnit.GetComponent<Health>().TakeDamage(35, false);
+        // Knockback the enemy with rigidbody2d
+        // enemyUnit.GetComponent<Rigidbody2D>().AddForce(new Vector2(-1, 0), ForceMode2D.Impulse);
+
         state = BattleState.ENEMYTURN;
         playerUnit.GetComponent<MovementCircle>().DestroyCircle();                  // Destroy Movement Circle
         yield return new WaitForSeconds(2f);
@@ -92,5 +133,34 @@ public class BattleSystem : MonoBehaviour
             state = BattleState.PLAYERTURN;
             PlayerTurn();
         }
+    }
+
+    private void Update()
+    {
+        if (Input.mouseScrollDelta.y == 1 || Input.GetKeyDown(KeyCode.E))
+        {
+            currentMove.GetComponent<Move>().cancel();
+            currentMoveIndex++;
+            currentMove = Instantiate(playerUnit.moves[currentMoveIndex % playerUnit.moves.Count]);
+            currentMove.transform.parent = gameObject.transform;
+            currentMove.GetComponent<Move>().execute(playerUnit.gameObject);
+        }
+        else if (Input.mouseScrollDelta.y == -1 || Input.GetKeyDown(KeyCode.Q))
+        {
+            currentMove.GetComponent<Move>().cancel();
+            currentMoveIndex--;
+            currentMove = Instantiate(playerUnit.moves[currentMoveIndex % playerUnit.moves.Count]);
+            currentMove.transform.parent = gameObject.transform;
+            currentMove.GetComponent<Move>().execute(playerUnit.gameObject);
+        }
+
+        // look for all enemies. if none are found, spawn one
+        Unit[] units = FindObjectsOfType<Unit>();
+        
+        if(units.Length == 1) {
+            Unit newEnemySpawned = Instantiate(enemyPrefab, new Vector3(0, 0, 0), Quaternion.identity).GetComponent<Unit>();
+            newEnemySpawned.GetComponent<BattleHUD>().SetHUD(newEnemySpawned);
+        }
+
     }
 }
