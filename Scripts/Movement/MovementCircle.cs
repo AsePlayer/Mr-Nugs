@@ -25,9 +25,6 @@ public class MovementCircle : MonoBehaviour
     {
         if(!canMove) return;
 
-        // Move the object around with the arrow keys but confine it
-        // to a given radius around a center point.
-
         // Get player input
         Vector2 movement;
         movement.x = Input.GetAxisRaw("Horizontal");
@@ -36,11 +33,21 @@ public class MovementCircle : MonoBehaviour
         // Player's new desired position
         Vector2 newPos = new Vector2(transform.position.x, transform.position.y) + movement * speed * Time.deltaTime;
 
-        // Calculate the distance of the new position from the center point. Keep the direction
-        // the same but clamp the length to the specified radius.
-        // Source: https://docs.unity3d.com/ScriptReference/Vector3.ClampMagnitude.html
-        offset = newPos - centerPosition;
-        transform.position = centerPosition + Vector2.ClampMagnitude(offset, movementRadius);
+        // Check if new position is inside the oval
+        float x = (newPos.x - centerPosition.x) / (movementRadius);
+        float y = (newPos.y - centerPosition.y) / (movementRadius / 2);
+        if (x * x + y * y > 1)
+        {
+            // If outside the oval, move the player back to the edge of the oval
+            float angle = Mathf.Atan2(y, x);
+            newPos = new Vector2(centerPosition.x + (movementRadius) * Mathf.Cos(angle), centerPosition.y + (movementRadius / 2) * Mathf.Sin(angle));
+            /* Based on the equation of an oval (x/a)^2 + (y/b)^2 = 1, where a and b are the semi-major and semi-minor axes of the oval. 
+            If the new position is outside the oval, it calculates the angle of the point and move the player back to the edge of the 
+            oval by using the angle and the radius of the oval. */
+        }
+
+        // Update player position
+        transform.position = newPos;
     }
 
     void OnDrawGizmos()
@@ -53,14 +60,20 @@ public class MovementCircle : MonoBehaviour
     public void SetupCircle(float speed)
     {
         // Create movement circle
-        movementCircle = Instantiate(movementCirclePrefab, transform.position + new Vector3(0, 0, 1.1f), Quaternion.identity).transform;
+        movementCircle = Instantiate(movementCirclePrefab, transform.position + new Vector3(0, 0, -1.1f), Quaternion.identity).transform;
 
         // Get center of movementCircle
         centerPosition = transform.position;
 
         // Set movementCircle based on how fast a Unit is
         movementRadius = (speed * 2) / 2;   // Radius = Diameter / 2
-        movementCircle.localScale = new Vector3(movementRadius, movementRadius /*   / 2   */, 0) * 2;
+        // movementCircle.localScale = new Vector3(movementRadius, movementRadius /*   / 2   */, 0) * 2;
+        // Check if x and y scale are the same
+        if(movementCircle.localScale.x == movementCircle.localScale.y)
+        {
+            movementCircle.localScale = new Vector3(movementRadius, movementRadius / 2, 0) * 2;
+            print("x and y scale are the same");
+        }
         canMove = true;
     }
 
