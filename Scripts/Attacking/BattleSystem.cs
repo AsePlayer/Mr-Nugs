@@ -8,6 +8,7 @@ public enum BattleState { START, PLAYERTURN, ENEMYTURN, WON, LOST }
 
 public class BattleSystem : MonoBehaviour
 {
+    /*
     public BattleState state;
 
     public GameObject playerPrefab;
@@ -77,7 +78,7 @@ public class BattleSystem : MonoBehaviour
     {
         dialogueText.text = "Choose an action:";
         // Create movement circle
-        playerUnit.GetComponent<MovementCircle>().SetupCircle(playerUnit.speed);    // Setup Movement Circle
+        playerUnit.GetComponent<MovementCircle>().SetupCircle(playerUnit.gameObject.transform.position, playerUnit.speed);    // Setup Movement Circle
 
         // Start with the first move
         currentMove = Instantiate(playerUnit.moves[currentMoveIndex%playerUnit.moves.Count]);
@@ -90,7 +91,7 @@ public class BattleSystem : MonoBehaviour
     {
         // print("new circle yo");
         playerUnit.GetComponent<MovementCircle>().DestroyCircle();
-        playerUnit.GetComponent<MovementCircle>().SetupCircle(playerUnit.speed);
+        playerUnit.GetComponent<MovementCircle>().SetupCircle(playerUnit.gameObject.transform.position, playerUnit.speed);
     }
 
     public void OnAttackButton()
@@ -118,14 +119,14 @@ public class BattleSystem : MonoBehaviour
     {
         dialogueText.text = enemyUnit.nameOfUnit + " attacks!";
 
-        enemyUnit.GetComponent<MovementCircle>().SetupCircle(enemyUnit.speed);      // Setup Movement Circle
+        enemyUnit.GetComponent<MovementCircle>().SetupCircle(playerUnit.gameObject.transform.position, enemyUnit.speed);      // Setup Movement Circle
 
         //playerUnit.TakeDamage(enemyUnit.damage);
-        playerUnit.GetComponent<Health>().TakeDamage(enemyUnit.damage, false);
+        playerUnit.GetComponent<Unit>().TakeDamage(enemyUnit.attack, false);
 
         yield return new WaitForSeconds(1f);
         enemyUnit.GetComponent<MovementCircle>().DestroyCircle();                 // Destroy Movement Circle
-        if(playerUnit.lives <= 0) {
+        if(playerUnit.GetMorsels().Count <= 0) {
             state = BattleState.LOST;
             //EndBattle();
         }
@@ -162,5 +163,20 @@ public class BattleSystem : MonoBehaviour
             newEnemySpawned.GetComponent<BattleHUD>().SetHUD(newEnemySpawned);
         }
 
+    }
+    */
+    void Start()
+    {
+        // Get reference to the StatusEffectManager
+        StatusEffectManager statusEffectManager = GameObject.Find("BattleManager").GetComponent<StatusEffectManager>();
+        // Apply stun status effect to player and enemy
+        GameObject playerUnit = GameObject.Find("MrNugs");
+        GameObject enemyUnit = GameObject.Find("EnemyNug");
+
+        playerUnit.GetComponent<Unit>().AddStatusEffect(statusEffectManager.GetStatusEffect("Stun"));
+        playerUnit.GetComponent<Unit>().AddStatusEffect(statusEffectManager.GetStatusEffect("Stun"));
+        playerUnit.GetComponent<Unit>().AddStatusEffect(statusEffectManager.GetStatusEffect("Stun"));
+        enemyUnit.GetComponent<Unit>().AddStatusEffect(statusEffectManager.GetStatusEffect("Stun"));
+        enemyUnit.GetComponent<Unit>().AddStatusEffect(statusEffectManager.GetStatusEffect("Stun"));
     }
 }

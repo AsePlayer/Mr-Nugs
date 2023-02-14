@@ -8,9 +8,11 @@ public class MovementCircle : MonoBehaviour
     Transform movementCircle; // The circle that the player can move around in
     Vector2 centerPosition; // Location of center of movementCircle
     
-    Vector2 offset; // Offset between center of movementCircle and player
+    // Vector2 offset; // Offset between center of movementCircle and player
     public float movementRadius; // The radius of the circle the player can move around in
     public float speed = 5f; // The speed the player moves at
+    private bool isPlayer = false;
+    [SerializeField] float moveSpeed = 3;
 
     public bool canMove = false; // Whether or not the player can move
 
@@ -18,7 +20,14 @@ public class MovementCircle : MonoBehaviour
 
     void Start()
     {
+        rb = gameObject.GetComponent<Rigidbody2D>();
+        if (gameObject.name == "MrNugs")
+        {
+            isPlayer = true;
+        }
 
+        // Set moveSpeed to Unit's currentSpeed
+        speed = gameObject.GetComponent<Unit>().currentSpeed;
     }
 
     void Update()
@@ -30,8 +39,14 @@ public class MovementCircle : MonoBehaviour
         movement.x = Input.GetAxisRaw("Horizontal");
         movement.y = Input.GetAxisRaw("Vertical");
 
+        // Move player
+        if (isPlayer)
+        {
+            rb.velocity = movement * moveSpeed;
+        }
+        
         // Player's new desired position
-        Vector2 newPos = new Vector2(transform.position.x, transform.position.y) + movement * speed * Time.deltaTime;
+        Vector2 newPos = rb.position;
 
         // Check if new position is inside the oval
         float x = (newPos.x - centerPosition.x) / (movementRadius);
@@ -57,10 +72,10 @@ public class MovementCircle : MonoBehaviour
         Gizmos.DrawLine(transform.position, centerPosition);
     }
 
-    public void SetupCircle(float speed)
+    public void SetupCircle(Vector3 startPosition, float speed)
     {
         // Create movement circle
-        movementCircle = Instantiate(movementCirclePrefab, transform.position + new Vector3(0, 0, -1.1f), Quaternion.identity).transform;
+        movementCircle = Instantiate(movementCirclePrefab, startPosition + new Vector3(0, 0, -1.1f), Quaternion.identity).transform;
 
         // Get center of movementCircle
         centerPosition = transform.position;
