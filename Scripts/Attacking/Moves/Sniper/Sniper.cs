@@ -9,37 +9,37 @@ public class Sniper : Move
 
     private bool active = false;          // True if move is currently being used by the player
     private Camera cam;                   // The main game camera
-    private List<GameObject> targets = new List<GameObject>();     // Every game object with a health component in the hitbox
     private Transform player;             // Position of the move user
     private GameObject hitboxVisual;      // The currently instantiated hitbox visual prefab
     private GameObject hitbox;            // The currently instantiated hitbox prefab
     private SniperHitbox sniperhb;        // Script for the hitbox to add targets
     private float hitboxRotation;         // Keeps track of how the hitbox should be rotated
-    private Quaternion currentRotation;   // Keeps track of the hitbox's current rotation
     private BoxCollider2D playerHurtBox;  // The user's hurtbox (The move's hitbox rotates around this)
     private Vector3 axis = new Vector3(0, 0, 1); // The rotation axis for the hitbox
+    private Vector3 halfHeight;           // Half the user's height. Used to find middle of sprite
 
-    private BattleSystem battleSystem;
-    void Start()
-    {
-        // Find BattleSystem Component
-        battleSystem = GameObject.Find("GameManager").GetComponent<BattleSystem>();
-    }
-    
     public override void execute(GameObject user)
     {
+        // Sniper object should be a child of BattleManager
+        if (gameObject.transform.parent.TryGetComponent(out NewBattleSystem n))
+        {
+            battleSystem = n;
+        }
+        else Debug.Log("Could not find BattleSystem for move Sniper.");
+
         player = user.transform;
         playerHurtBox = user.GetComponent<BoxCollider2D>();
+        halfHeight = new Vector3(0, player.GetComponent<SpriteRenderer>().bounds.size.y/2, 0);
 
         // Instantiates hitbox at correct rotation in terms of mouse placement
         cam = Camera.main;
-        Vector3 middle = player.position;
+        Vector3 middle = player.position + halfHeight;
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
 
         hitboxRotation = Vector3.Angle(middle, new Vector3(ray.origin.x, ray.origin.y));
 
         hitboxVisual = Instantiate(hitboxVisualPrefab, middle, Quaternion.identity);
-        hitbox = Instantiate(hitboxPrefab, middle + new Vector3(playerHurtBox.offset.x * player.localScale.x, playerHurtBox.offset.y * player.localScale.y), Quaternion.identity);
+        hitbox = Instantiate(hitboxPrefab, player.position + new Vector3(playerHurtBox.offset.x * player.localScale.x, playerHurtBox.offset.y * player.localScale.y), Quaternion.identity);
         hitboxVisual.transform.SetParent(player);
         hitbox.transform.SetParent(player);
 
@@ -61,10 +61,39 @@ public class Sniper : Move
         active = false;
 
         // Remove instantiated gameobjects
-        targets.Clear();
+        clearTargets();
         Destroy(hitbox);
         Destroy(hitboxVisual);
         Destroy(gameObject);
+    }
+
+    protected override IEnumerator anim()
+    {
+        active = false;
+
+        foreach (GameObject t in targets)
+        {
+            if (t.GetComponent<Unit>().GetMorsels().Count > 0)
+            {
+                t.GetComponent<Unit>().TakeDamage(100, true);
+            }
+            
+
+            // Call Knockback function
+            Knockback(t, 25f);
+        }
+
+        clearTargets();
+        Destroy(hitbox);
+        Destroy(hitboxVisual);
+
+        yield return StartCoroutine(
+            battleSystem.friendlyUsedTurn(
+                player.gameObject,
+                player.gameObject.name + " used Sniper."
+                ));
+
+        cancel();
     }
 
     // Update is called once per frame
@@ -75,7 +104,7 @@ public class Sniper : Move
             // Sets the hitbox rotation relative to the mouse
             Ray ray = cam.ScreenPointToRay(Input.mousePosition);
 
-            hitboxRotation = Vector3.SignedAngle(new Vector3(1, 0), new Vector3(ray.origin.x, ray.origin.y) - player.position, axis);
+            hitboxRotation = Vector3.SignedAngle(new Vector3(1, 0), new Vector3(ray.origin.x, ray.origin.y) - (player.position + halfHeight), axis);
 
             hitboxVisual.transform.eulerAngles = new Vector3(0, 0, hitboxRotation);
             hitbox.transform.eulerAngles = new Vector3(0, 0, hitboxRotation);
@@ -83,14 +112,7 @@ public class Sniper : Move
             // Damages units in 'targets' on click
             if (Input.GetMouseButtonDown(0))
             {
-                foreach (GameObject t in targets)
-                {
-                    t.GetComponent<Health>().TakeDamage(30, true);
-
-                    // Call Knockback function
-                    Knockback(t, 25f);
-                }
-                battleSystem.NewMovementCircle();
+                StartCoroutine(anim());
             }
         }
     }
@@ -107,26 +129,40 @@ public class Sniper : Move
     public void addTarget(GameObject t)
     {
         // Do not add the player to targets
-        if (t != player.gameObject)
+        if (t != player.gameObject && active)
         {
-            targets.Add(t);
+            addToTargets(t);
         }
         else
         {
-            Debug.Log("Adding " + t.gameObject.name + " denied.");
+            if (active)
+            {
+                // Debug.Log("Adding " + t.gameObject.name + " denied. (Not self-damaging move)");
+            }
+            else
+            {
+                // Debug.Log("Adding " + t.gameObject.name + " denied. (Move is not active)");
+            }
         }
     }
 
     public void removeTarget(GameObject t)
     {
         // Do not add the player to targets
-        if (t != player.gameObject)
+        if (t != player.gameObject && active)
         {
-            targets.Remove(t);
+            removeFromTargets(t);
         }
         else
         {
-            Debug.Log("Removing " + t.gameObject.name + " denied. (Should not be in target list)");
+            if (active)
+            {
+                //Debug.Log("Removing " + t.gameObject.name + " denied. (Should not be in target list)");
+            }
+            else
+            {
+                //Debug.Log("Removing " + t.gameObject.name + " denied. (List already cleared)");
+            }
         }
     }
 }

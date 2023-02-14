@@ -13,21 +13,21 @@ public class SlamHitbox : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        //print(collision.gameObject.name);
-        if (collision.gameObject.TryGetComponent<Health>(out Health h))
+        // print(collision.gameObject.name);
+        if (collision.gameObject.TryGetComponent(out Unit u))
         {
             slam.addTarget(collision.gameObject);
-            print(collision.gameObject.name + " added");
+            // print(collision.gameObject.name + " added");
         }
     }
 
     private void OnTriggerExit2D(Collider2D collision)
     {
         //print(collision.gameObject.name);
-        if (collision.gameObject.TryGetComponent<Health>(out Health h))
+        if (collision.gameObject.TryGetComponent(out Unit u))
         {
             slam.removeTarget(collision.gameObject);
-            print(collision.gameObject.name + " removed");
+            // print(collision.gameObject.name + " removed");
         }
     }
 }

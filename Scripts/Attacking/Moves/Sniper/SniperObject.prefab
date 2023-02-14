@@ -44,5 +44,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 918bc74c888159f4fa869f55eed1ce5f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  targetRingPrefab: {fileID: 2548287496221400817, guid: 8206b8d5084132c478ecdf0a75be6afb, type: 3}
   hitboxVisualPrefab: {fileID: 5356588615782119836, guid: bb20cb1c5758ee348be0a7dc66139fa9, type: 3}
   hitboxPrefab: {fileID: 4136593356891466683, guid: 74ef717f725db0a46a9d3bd81662bd39, type: 3}

@@ -33,7 +33,7 @@ public class Hitbox : MonoBehaviour
                 // mostRecentCollision.GetComponent<Unit>().health -= damage;
                 // dealDamage = true;
                 dealDamage = true;
-                mostRecentCollision.gameObject.GetComponent<Health>().TakeDamage(unit.damage, true);
+                mostRecentCollision.gameObject.GetComponent<Unit>().TakeDamage(unit.attack, true);
                 Debug.Log("Hit");
             }
             else

@@ -9,36 +9,34 @@ public class Slam : Move
 
     private bool active = false;          // True if move is currently being used by the player
     private Camera cam;                   // The main game camera
-    private List<GameObject> targets = new List<GameObject>();     // Every game object with a health component in the hitbox
     private Transform player;             // Position of the move user
     private GameObject hitbox;            // The currently instantiated hitbox prefab
     private SlamHitbox slamhb;            // Script for the hitbox to add targets
     private Rigidbody2D hitboxrb;         // Rigidbody component of Gameobject 'hitbox'
-    private Vector3 hitboxPos;            // Keeps track of where the hitbox should be
+    private Vector2 hitboxPos;            // Keeps track of where the hitbox should be
     private BoxCollider2D playerHurtBox;  // The user's hurtbox (The move's hitbox rotates around this)
 
     private Vector3 scale = new Vector3(1, 0.5f, 0);  //Used for positioning of hitbox relative to mouse
 
     public float knockbackTime = 1f;
 
-    private BattleSystem battleSystem;
-
-    void Start()
-    {
-        // Find BattleSystem Component
-        battleSystem = GameObject.Find("GameManager").GetComponent<BattleSystem>();
-    }
-
     public override void execute(GameObject user)
     {
+        // Slam object should be a child of GameManager
+        if (gameObject.transform.parent.TryGetComponent(out NewBattleSystem n))
+        {
+            battleSystem = n;
+        }
+        else Debug.Log("Could not find BattleSystem for move Slam.");
+
         player = user.transform;
         playerHurtBox = user.GetComponent<BoxCollider2D>();
 
         // Instantiates hitbox at correct postition in terms of mouse placement
         cam = Camera.main;
-        Vector3 middle = player.position + new Vector3(playerHurtBox.offset.x * player.localScale.x, playerHurtBox.offset.y * player.localScale.y);
+        Vector2 middle = player.position + new Vector3(playerHurtBox.offset.x * player.localScale.x, playerHurtBox.offset.y * player.localScale.y);
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
-        hitboxPos = middle + range * Vector3.Scale((new Vector3(ray.origin.x, ray.origin.y) - middle).normalized, scale);
+        hitboxPos = middle + range * Vector2.Scale((new Vector2(ray.origin.x, ray.origin.y) - middle).normalized, scale);
 
         hitbox = Instantiate(hitboxPrefab, hitboxPos, Quaternion.identity);
 
@@ -57,9 +55,36 @@ public class Slam : Move
         active = false;
 
         // Remove instantiated gameobjects
-        targets.Clear();
+        clearTargets();
         Destroy(hitbox);
         Destroy(gameObject);
+    }
+
+    protected override IEnumerator anim()
+    {
+        active = false;
+
+        foreach (GameObject t in targets)
+        {
+            if (t.GetComponent<Unit>().GetMorsels().Count > 0)
+            {
+                t.GetComponent<Unit>().TakeDamage(30, true);
+            }
+
+            // Call Knockback function
+            Knockback(t, 10f);
+        }
+
+        clearTargets();
+        Destroy(hitbox);
+
+        yield return StartCoroutine(
+            battleSystem.friendlyUsedTurn(
+                player.gameObject,
+                player.gameObject.name + " used Slam."
+                ));
+
+        cancel();
     }
 
     // Update is called once per frame
@@ -68,25 +93,16 @@ public class Slam : Move
         if (active)
         {
             // Sets hitbox position relative to mouse
-            Vector3 middle = player.position + new Vector3(playerHurtBox.offset.x * player.localScale.x, playerHurtBox.offset.y * player.localScale.y);
+            Vector2 middle = player.position + new Vector3(playerHurtBox.offset.x * player.localScale.x, playerHurtBox.offset.y * player.localScale.y);
             Ray ray = cam.ScreenPointToRay(Input.mousePosition);
-            hitboxPos = middle + range * Vector3.Scale((new Vector3(ray.origin.x, ray.origin.y) - middle).normalized, scale);
+            hitboxPos = middle + range * Vector2.Scale((new Vector2(ray.origin.x, ray.origin.y) - middle).normalized, scale);
             hitboxrb.position = hitboxPos;
 
             // Damages units in 'targets' on click
             if (Input.GetMouseButtonDown(0))
             {
-                foreach (GameObject t in targets)
-                {
-                    t.GetComponent<Health>().TakeDamage(30, true);
-                                        
-                    // Call Knockback function
-                    Knockback(t, 10f);
-                }
-                battleSystem.NewMovementCircle();
-
+                StartCoroutine(anim());
             }
-
         }
     }
 
@@ -101,11 +117,25 @@ public class Slam : Move
     // SlamHitbox.cs script attached to GameObject 'hitbox' will call these functions when entering or exiting range of a unit
     public void addTarget(GameObject t)
     {
-        targets.Add(t);
+        if (active)
+        {
+            addToTargets(t);
+        }
+        else
+        {
+           // Debug.Log("Removing " + t.gameObject.name + " denied. (Move is not active)");
+        }
     }
 
     public void removeTarget(GameObject t)
     {
-        targets.Remove(t);
+        if (active)
+        {
+            removeFromTargets(t);
+        }
+        else
+        {
+            // Debug.Log("Removing " + t.gameObject.name + " denied. (List already cleared)");
+        }
     }
 }
