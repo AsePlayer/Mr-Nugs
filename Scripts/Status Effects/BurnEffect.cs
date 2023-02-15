@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class StunEffect : StatusEffect
+public class BurnEffect : StatusEffect
 {
     public override void Stack()
     {
@@ -21,17 +21,30 @@ public class StunEffect : StatusEffect
         // If stack exceeds is 3 or more, set target.currentSpeed to 0. Stunned!
         if(stackCount >= 3)
         {
-            target.currentSpeed = 0;  
-            print(target.nameOfUnit + " is stunned!");
+            target.TakeDamage(100, true);
+            print(target.nameOfUnit + " blew up!!");
         }
         else 
         {
-            target.currentSpeed = target.currentSpeed / (stackCount);
-            print(target.nameOfUnit + " is slowed!");
+            // if they are not moving, they are burning
+            // damage unit for 1 damage every 1 second
+
+            print(target.nameOfUnit + " is burning!");
+            // loop burning
+            StartCoroutine(Burn(target));
         }
         
     }
 
+    IEnumerator Burn(Unit target)
+    {
+        yield return new WaitForSeconds(1);
+        
+        // if the player has not moved, keep burning, use rb
+        if(target.GetComponent<Rigidbody2D>().velocity == Vector2.zero && target.usedTurn == false)
+            target.TakeDamage(stackCount, true);
+        StartCoroutine(Burn(target));
+    }
     public override void ApplyEffectAfterTurn(Unit target)
     {
         // Decrease the duration of the status effect

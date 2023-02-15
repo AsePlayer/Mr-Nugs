@@ -168,15 +168,20 @@ public class BattleSystem : MonoBehaviour
     void Start()
     {
         // Get reference to the StatusEffectManager
-        StatusEffectManager statusEffectManager = GameObject.Find("BattleManager").GetComponent<StatusEffectManager>();
+        StatusEffectDatabase statusEffectManager = GameObject.Find("BattleManager").GetComponent<StatusEffectDatabase>();
+        StatusEffect stun = statusEffectManager.GetStatusEffect("Stun");
         // Apply stun status effect to player and enemy
-        GameObject playerUnit = GameObject.Find("MrNugs");
-        GameObject enemyUnit = GameObject.Find("EnemyNug");
+        Unit playerUnit = GameObject.Find("MrNugs").GetComponent<Unit>();
+        Unit enemyUnit = GameObject.Find("EnemyNug").GetComponent<Unit>();
 
-        playerUnit.GetComponent<Unit>().AddStatusEffect(statusEffectManager.GetStatusEffect("Stun"));
-        playerUnit.GetComponent<Unit>().AddStatusEffect(statusEffectManager.GetStatusEffect("Stun"));
-        playerUnit.GetComponent<Unit>().AddStatusEffect(statusEffectManager.GetStatusEffect("Stun"));
-        enemyUnit.GetComponent<Unit>().AddStatusEffect(statusEffectManager.GetStatusEffect("Stun"));
-        enemyUnit.GetComponent<Unit>().AddStatusEffect(statusEffectManager.GetStatusEffect("Stun"));
+        playerUnit.AddStatusEffect(statusEffectManager.GetStatusEffect("Burn"));
+        playerUnit.AddStatusEffect(stun);
+        playerUnit.AddStatusEffect(stun);
+        enemyUnit.AddStatusEffect(stun);
+        enemyUnit.AddStatusEffect(stun);
+
+        // apply effect after turn
+        playerUnit.ExecuteStatusEffects();
+        enemyUnit.ExecuteStatusEffects();
     }
 }

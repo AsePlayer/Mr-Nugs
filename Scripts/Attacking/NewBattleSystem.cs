@@ -86,6 +86,7 @@ public class NewBattleSystem : MonoBehaviour
                         selectedCharacter = friend;
                         selectedCharacterUnit = selectedCharacter.GetComponent<Unit>();
                         selectedPlayer = true;
+                        u.usedTurn = false;
 
                         // Once more actions like items are added, the action menu would be brought up here
                         currentMove = Instantiate(u.moves[currentMoveIndex % u.moves.Count]);

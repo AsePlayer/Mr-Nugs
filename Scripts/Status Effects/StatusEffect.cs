@@ -8,15 +8,20 @@ public class StatusEffect : MonoBehaviour
     public string effectName;
 
     // The duration of the status effect in turns
-    protected int duration;
+    [SerializeField] protected int duration;
 
     public int currentDuration;
 
     // The number of times this status effect has been stacked
-    [SerializeField] protected int stackCount;
+    protected int stackCount;
 
     // Apply the status effect to the target
-    public virtual void ApplyEffect(Unit target)
+    public virtual void ApplyEffectDuringTurn(Unit target)
+    {
+        // Override this method in derived classes to implement the specific behavior of the status effect
+    }
+
+    public virtual void ApplyEffectAfterTurn(Unit target)
     {
         // Override this method in derived classes to implement the specific behavior of the status effect
     }

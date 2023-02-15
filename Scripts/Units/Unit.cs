@@ -17,7 +17,7 @@ public class Unit : MonoBehaviour
     public List<GameObject> moves = new List<GameObject>();
     
     // Status effects
-    public StatusEffectManager statusEffectManager;
+    public StatusEffectDatabase statusEffectDatabase;
     public List<StatusEffect> statusEffects = new List<StatusEffect>();
 
     // Used for battle algorithm
@@ -30,18 +30,18 @@ public class Unit : MonoBehaviour
 
     void Start()
     {
-        statusEffectManager = GameObject.Find("BattleManager").GetComponent<StatusEffectManager>();
+        statusEffectDatabase = GameObject.Find("BattleManager").GetComponent<StatusEffectDatabase>();
         // Set the current speed to the unit's speed
         currentSpeed = speed;
     }
 
-    public void ApplyStatusEffects()
+    public void ExecuteStatusEffects()
     {
         // Apply status effects
         foreach (StatusEffect se in statusEffects)
         {
-            se.ApplyEffect(this);
-            se.currentDuration--;
+            se.ApplyEffectAfterTurn(this);
+            // se.currentDuration--;
         }
 
         // Remove status effects that have expired
@@ -56,14 +56,13 @@ public class Unit : MonoBehaviour
 
     public void AddStatusEffect(StatusEffect se)
     {
-
         // Check if the status effect is already on the unit
         foreach (StatusEffect s in statusEffects)
         {
             if (s.effectName == se.effectName)
             {
                 // If it is, then just increase the stack count
-                s.ApplyEffect(this);
+                s.ApplyEffectDuringTurn(this);
                 return;
             }
         }
@@ -72,7 +71,7 @@ public class Unit : MonoBehaviour
         se = Instantiate(se);
         se.transform.SetParent(transform);
         statusEffects.Add(se);
-        se.ApplyEffect(this);
+        se.ApplyEffectDuringTurn(this);
     }
 
     /******************************************
