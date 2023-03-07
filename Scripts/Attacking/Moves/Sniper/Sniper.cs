@@ -8,6 +8,7 @@ public class Sniper : Move
     [SerializeField] GameObject hitboxPrefab;         // The prefab of the hitbox of the move (Collider Line)
 
     private bool active = false;          // True if move is currently being used by the player
+    private bool playerControl = false;   // True if the player is using the move. Control of the move is removed when false
     private Camera cam;                   // The main game camera
     private Transform player;             // Position of the move user
     private GameObject hitboxVisual;      // The currently instantiated hitbox visual prefab
@@ -18,8 +19,11 @@ public class Sniper : Move
     private Vector3 axis = new Vector3(0, 0, 1); // The rotation axis for the hitbox
     private Vector3 halfHeight;           // Half the user's height. Used to find middle of sprite
 
+    private GameObject optimalTarget;     // Best person to aim at based on enemy AI calculation
+
     public override void execute(GameObject user)
     {
+        playerControl = true;
         // Sniper object should be a child of BattleManager
         if (gameObject.transform.parent.TryGetComponent(out NewBattleSystem n))
         {
@@ -87,19 +91,63 @@ public class Sniper : Move
         Destroy(hitbox);
         Destroy(hitboxVisual);
 
-        yield return StartCoroutine(
-            battleSystem.friendlyUsedTurn(
-                player.gameObject,
-                player.gameObject.name + " used Sniper."
-                ));
+        if (playerControl)
+        {
+            yield return StartCoroutine(
+                battleSystem.friendlyUsedTurn(
+                    player.gameObject,
+                    player.gameObject.name + " used Sniper."
+                    ));
+        }
+        else
+        {
+            yield return StartCoroutine(
+                battleSystem.enemyUsedTurn(
+                    player.gameObject,
+                    player.gameObject.name + " used Sniper."
+                    ));
+        }
 
         cancel();
+    }
+
+    // Temporary function until I put in the advanced AI
+    // Finds the first living target as the best spot to aim.
+    public override float enemyFindOptimal(List<GameObject> targets)
+    {
+        foreach (GameObject target in targets)
+        {
+            if (!target.GetComponent<Unit>().dead)
+            {
+                optimalTarget = target;
+                return 100;
+            }
+        }
+        return 100;
+    }
+
+    public override IEnumerator enemyAnim(GameObject user)
+    {
+        // Create all move assets
+        execute(user);
+        playerControl = false;
+
+        // Position assets correctly
+        hitboxRotation = Vector3.SignedAngle(new Vector3(1, 0), optimalTarget.transform.position - user.transform.position, axis);
+
+        hitboxVisual.transform.eulerAngles = new Vector3(0, 0, hitboxRotation);
+        hitbox.transform.eulerAngles = new Vector3(0, 0, hitboxRotation);
+
+        yield return new WaitForSeconds(1);
+
+        // Use attack
+        yield return StartCoroutine(anim());
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (active)
+        if (active && playerControl)
         {
             // Sets the hitbox rotation relative to the mouse
             Ray ray = cam.ScreenPointToRay(Input.mousePosition);

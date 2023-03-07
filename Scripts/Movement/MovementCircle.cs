@@ -83,12 +83,7 @@ public class MovementCircle : MonoBehaviour
         // Set movementCircle based on how fast a Unit is
         movementRadius = (speed * 2) / 2;   // Radius = Diameter / 2
         // movementCircle.localScale = new Vector3(movementRadius, movementRadius /*   / 2   */, 0) * 2;
-        // Check if x and y scale are the same
-        if(movementCircle.localScale.x == movementCircle.localScale.y)
-        {
-            movementCircle.localScale = new Vector3(movementRadius, movementRadius / 2, 0) * 2;
-            print("x and y scale are the same");
-        }
+        movementCircle.localScale = new Vector3(movementRadius, movementRadius / 2, 0) * 2;
         canMove = true;
     }
 

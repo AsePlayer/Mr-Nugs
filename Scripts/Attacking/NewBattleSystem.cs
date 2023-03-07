@@ -16,8 +16,10 @@ public class NewBattleSystem : MonoBehaviour
     // Control Variables
     private int currentMoveIndex;               // The current move selected by the player (move list index)
     private GameObject selectedCharacter;       // The current character being controlled by the player
-    private Unit selectedCharacterUnit;         // The unit script of the character being controlled by the character
-    private GameObject currentMove;             // The gameobject of the move being displayed
+    private Unit selectedCharacterUnit;         // The unit script of the character being controlled by the player
+    private MovementCircle selectedCharacterMovementCircle; // The MovementCircle script of the character being controlled by the player
+    private GameObject currentMove;             // The gameobject of the player move being displayed. Also doubles as the move that the enemy should use
+    private float bestMoveScore;                // Best calculated enemy AI move score. The move that the score belongs to should be currentMove
     enum Actions { Move };                      // All possible actions for a player turn.
     private Actions currentAction;              // Current action being executed by the player. Keeps track of what the player controls should be doing.
 
@@ -41,8 +43,8 @@ public class NewBattleSystem : MonoBehaviour
         currentMoveIndex = 10000; // Change this to remember last move used or something later
         playerTurn = playerFirst;
         battleStillGoing = true;
-        selectedCharacter = friendlies[0];
-        selectedCharacterUnit = selectedCharacter.GetComponent<Unit>();
+        // selectedCharacter = friendlies[0];
+        // selectedCharacterUnit = selectedCharacter.GetComponent<Unit>();
 
         StartCoroutine(BattleLoop());
     }
@@ -64,6 +66,45 @@ public class NewBattleSystem : MonoBehaviour
         
     }
 
+    // This function sets up actions for the current controllable character
+    private void SelectCharacter(GameObject friend, Unit u)
+    {
+        selectedCharacter = friend;
+        selectedCharacterUnit = u;
+        selectedCharacterMovementCircle = selectedCharacter.GetComponent<MovementCircle>();
+
+        // Once more actions like items are added, the action menu would be brought up here
+        currentMove = Instantiate(u.moves[currentMoveIndex % u.moves.Count]);
+        currentMove.transform.parent = gameObject.transform;
+        currentMove.GetComponent<Move>().execute(selectedCharacter);
+        // Debug.Log("Default selected character: " + selectedCharacter.name + "\nDefault selected move: " + currentMove.name);
+
+        if (friend.TryGetComponent(out MovementCircle m))
+        {
+            m.SetupCircle(u.startPos, u.currentSpeed);
+        }
+        else Debug.Log("No movement circle script on " + friend.name);
+
+        // There will be more enums once more actions are added. For now, there's just moves.
+        currentAction = Actions.Move;
+    }
+
+    // This function removes control from the currently selected character.
+    // usedMove is true if this is called after a character used their move.
+    // usedMove is false if another character was selected before a character got to use their move.
+    private void DeselectCharacter(bool usedMove)
+    {
+        selectedCharacterMovementCircle.DestroyCircle();
+        if (!usedMove)
+        {
+            currentMove.GetComponent<Move>().cancel();
+        }
+
+        selectedCharacter = null;
+        selectedCharacterUnit = null;
+        selectedCharacterMovementCircle = null;
+    }
+
     // Sets up the player turn
     IEnumerator PlayerTurn()
     {
@@ -73,36 +114,23 @@ public class NewBattleSystem : MonoBehaviour
 
         bool selectedPlayer = false;
 
-        // Give each living friendly 1 action, and choose a default selected character + set up their actions
+        // Give each living friendly 1 action, and choose a default selected character
         foreach (GameObject friend in friendlies)
         {
             if (friend.TryGetComponent(out Unit u))
             {
+                u.startPos = friend.transform.position;
                 if (!u.dead)
                 {
                     u.usedTurn = false;
                     if (!selectedPlayer)
                     {
-                        selectedCharacter = friend;
-                        selectedCharacterUnit = selectedCharacter.GetComponent<Unit>();
                         selectedPlayer = true;
-                        u.usedTurn = false;
-
-                        // Once more actions like items are added, the action menu would be brought up here
-                        currentMove = Instantiate(u.moves[currentMoveIndex % u.moves.Count]);
-                        currentMove.transform.parent = gameObject.transform;
-                        currentMove.GetComponent<Move>().execute(selectedCharacter);
-                        // Debug.Log("Default selected character: " + selectedCharacter.name + "\nDefault selected move: " + currentMove.name);
-
-                        // There will be more enums once more actions are added. For now, there's just moves.
-                        currentAction = Actions.Move;
+                        SelectCharacter(friend, u);
                     }
                 }
             }
-            else
-            {
-                Debug.Log("Why doesn't " + friend.name + " have a Unit script?");
-            }
+            else Debug.Log("Why doesn't " + friend.name + " have a Unit script?");
         }
 
         lockControl = false;
@@ -112,13 +140,53 @@ public class NewBattleSystem : MonoBehaviour
         yield return new WaitUntil(() => !playerTurn);
     }
 
+    // Sets up and plays the enemy turn.
     IEnumerator EnemyTurn()
     {
+        // Debug.Log("Enemy Turn Start");
         lockControl = true;
         dialogueManager.insertBattleDialogue("It is team Baddie's turn.");
         yield return new WaitForSeconds(2);
 
-        playerTurn = true;
+        // Each enemy is iterated through.
+        // For each enemy, one enemy at a time, their whole moveset is instantiated under the battle manager (like a player move would be).
+        // Each of those moves has a score calculated, based on the best way to use that move this turn.
+        // The best move is chosen and used, the enemy's turn is done, the moves under battle manager are destroyed, and the next enemy goes.
+        foreach (GameObject enemy in enemies)
+        {
+            if(enemy.TryGetComponent(out Unit u))
+            {
+                u.startPos = enemy.transform.position;
+                if (!u.dead)
+                {
+                    u.usedTurn = false;
+                }
+            }
+
+            bestMoveScore = Mathf.NegativeInfinity;
+            List<GameObject> allInstantiatedMoves = new List<GameObject>();
+            foreach (GameObject move in u.moves)
+            {
+                // Instantiate move
+                GameObject instantiatedMove = Instantiate(move);
+                instantiatedMove.transform.parent = gameObject.transform;
+                allInstantiatedMoves.Add(instantiatedMove);
+
+                // Get move score
+                float thisMoveScore = instantiatedMove.GetComponent<Move>().enemyFindOptimal(friendlies);
+                if (thisMoveScore > bestMoveScore)
+                {
+                    bestMoveScore = thisMoveScore;
+                    currentMove = instantiatedMove;
+                }
+            }
+
+            // Do best move
+            yield return StartCoroutine(currentMove.GetComponent<Move>().enemyAnim(enemy));
+        }
+
+        // playerTurn = true;
+
         // When an enemy uses their turn, they will call enemyUsedTurn(),
         // which will set playerTurn to true once all friendlies have used their turn.
         yield return new WaitUntil(() => playerTurn);
@@ -129,6 +197,7 @@ public class NewBattleSystem : MonoBehaviour
     // Starts next turn if team is out of moves.
     IEnumerator CheckBattleStatus()
     {
+        Debug.Log("Checking battle status.");
         bool allFriendliesDead = true;
         bool allFriendlyTurnsUsed = true;
 
@@ -182,7 +251,6 @@ public class NewBattleSystem : MonoBehaviour
                     yield return new WaitForSeconds(2);
                     dialogueManager.insertBattleDialogue("");
                     u.transform.Rotate(0, 0, 90);
-
                 }
                 // Check to see if at least 1 enemy is alive
                 else if (u.morsels.Count > 0)
@@ -209,6 +277,12 @@ public class NewBattleSystem : MonoBehaviour
         {
             playerTurn = !playerTurn;
         }
+        else {
+            // print the conditions
+            Debug.Log("allFriendliesDead: " + allFriendliesDead);
+            Debug.Log("allFriendlyTurnsUsed: " + allFriendlyTurnsUsed);
+        }
+        
     }
 
     // Sets up HUDs for all enemy and friendly units
@@ -242,13 +316,14 @@ public class NewBattleSystem : MonoBehaviour
         lockControl = true;
         setHUDS();
         dialogueManager.insertBattleDialogue(text);
+        DeselectCharacter(true);
         if (user.TryGetComponent(out Unit u))
         {
             u.usedTurn = true;
         }
         else Debug.Log("Could not find User script for " + user.name);
 
-        yield return new WaitForSeconds(1);
+        yield return new WaitForSeconds(1); // stops here for some reason
 
         dialogueManager.clearBattleDialogue();
 
@@ -270,7 +345,6 @@ public class NewBattleSystem : MonoBehaviour
         yield return new WaitForSeconds(1);
 
         dialogueManager.clearBattleDialogue();
-
         yield return StartCoroutine(CheckBattleStatus());
     }
 

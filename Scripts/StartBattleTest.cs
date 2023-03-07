@@ -19,7 +19,7 @@ public class StartBattleTest : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (timer < 1)
+        if (timer < 0.1)
         {
             timer += Time.deltaTime;
         }

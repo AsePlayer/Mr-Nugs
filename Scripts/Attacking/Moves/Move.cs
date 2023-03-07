@@ -30,6 +30,20 @@ public class Move : MonoBehaviour
         return null;
     }
 
+    // Each move will have its own way of calculating score.
+    // Many scores will be calculated for many possibilities of ways to use the move.
+    // The best score is returned, and compared with the best score of any other moves.
+    public virtual float enemyFindOptimal(List<GameObject> targets)
+    {
+        return 0;
+    }
+
+    // This function is called when an enemy uses the move.
+    public virtual IEnumerator enemyAnim(GameObject user)
+    {
+        return null;
+    }
+
     protected void addToTargets(GameObject targetUnit)
     {
         targets.Add(targetUnit);

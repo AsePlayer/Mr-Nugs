@@ -35,6 +35,10 @@ public class Unit : MonoBehaviour
         currentSpeed = speed;
     }
 
+    /*******************************************
+     *         Status Effect Related Stuff
+     * *****************************************/
+
     public void ExecuteStatusEffects()
     {
         // Apply status effects
@@ -129,6 +133,9 @@ public class Unit : MonoBehaviour
 
                 // Destroy the gameobject
                 // Destroy(gameObject);
+                // Trigger Death Animation "Nug_Death"
+                GetComponent<Animator>().SetBool("isDead", true);
+
             }
         }
     }
@@ -147,12 +154,13 @@ public class Unit : MonoBehaviour
     }
     public int getCurrentMorselMaxHP()
     {
+        // if morselCaps is missing an entry compared to morsels, then return the entry in morsels. do this by checking if the index is out of bounds.
+        if (morselCaps.Count - 1 < morsels.Count - 1)
+        {
+            return morsels[morsels.Count - 1];
+        }
         return morselCaps[morsels.Count - 1];
     }
-
-
-
-
 
     /*
     public int accuracy;
